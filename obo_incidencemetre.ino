@@ -98,9 +98,9 @@ void write_angles()
 
 	String mystr;
 	mystr = "X: " + String (xAvg.get() - xOffset, 1) + " ";
-	u8g2.drawStr(30,30,mystr.c_str());
+	u8g2.drawStr(20,30,mystr.c_str());
 	mystr = "Y: " + String (yAvg.get() - yOffset, 1) + " ";
-	u8g2.drawStr(30,52,mystr.c_str());
+	u8g2.drawStr(20,52,mystr.c_str());
 	//mystr = "Z = " + String (zAvg.get());
 	//u8g2.drawStr(0,50,mystr.c_str());	// write something to the internal memory
 
@@ -115,6 +115,8 @@ void check_button()
 		yOffset = yAvg.get();
 		digitalWrite(ledPin, HIGH);
 	}
+	else
+		digitalWrite(ledPin, LOW);
 }
 
 void loop(void) {
