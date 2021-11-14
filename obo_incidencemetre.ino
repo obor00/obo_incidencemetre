@@ -1,10 +1,13 @@
 /*
 
-  Incidencemetre
+	Incidencemetre
+	Author: Obor 14/11/2021
 
-  libraries:
+	libraries:
 	MPU9250 by hideakitai https://github.com/hideakitai/MPU9250
 	U8G2 by Oliver https://github.com/olikraus/u8g2
+
+	OLD model: SSH1106, 128*64
 */
 
 #include <Arduino.h>
@@ -21,13 +24,8 @@
 #include "eeprom_utils.h"
 #include <MovingAverage.h>
 
-/*
-  extract from U8g2lib Example Overview:
-*/
-//U8G2_SH1106_128X64_NONAME_1_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);
-//#ifdef OLED
+// setup SH1106_128X64
 U8G2_SH1106_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);
-//#endif
 
 MPU9250 mpu;
 MovingAverage<float> xAvg(10);
@@ -38,11 +36,13 @@ void setup(void) {
 
 	//Serial.begin(115200);
 
+	// --------------------
 	// Oled setting
 	u8g2.begin();
 	u8g2.setBusClock(400000);
 	//u8g2.setFlipMode(0);
 
+	// --------------------
 	// MPU9250 setting
 	Wire.begin();
 	delay(2000);
@@ -52,9 +52,21 @@ void setup(void) {
 			delay(5000);
 		}
 	}
-    loadCalibration();
+	loadCalibration();
 	mpu.selectFilter(QuatFilterSel::MADGWICK);
 	mpu.setFilterIterations(10);
+
+	// --------------------
+	//  Oled start draw
+	u8g2.clearBuffer();
+	u8g2.setFont(u8g2_font_ncenB08_tr);
+	u8g2.drawStr(0,10,"  Incidencemetre OBO");
+	u8g2.drawFrame(0,0,u8g2.getDisplayWidth(),u8g2.getDisplayHeight() );
+	u8g2.sendBuffer();
+
+	u8g2.setFont(u8g2_font_10x20_mf);
+	u8g2.setFontMode(0);
+	u8g2.setDrawColor(1);
 }
 
 
@@ -69,33 +81,31 @@ void print_roll_pitch_yaw() {
 
 int count = 0;
 
-void write_something() {
-  u8g2.clearBuffer();					// clear the internal memory
-  u8g2.setFont(u8g2_font_ncenB08_tr);	// choose a suitable font
-  u8g2.drawStr(0,10,"Incidencemetre");	// write something to the internal memory
+void write_angles() {
 
-  xAvg.push(mpu.getEulerX());
-  yAvg.push(mpu.getEulerY());
-  zAvg.push(mpu.getEulerZ());
+	xAvg.push(mpu.getEulerX());
+	yAvg.push(mpu.getEulerY());
+	zAvg.push(mpu.getEulerZ());
 
-  String mystr;
-  mystr = "X = " + String (xAvg.get());
-  u8g2.drawStr(0,30,mystr.c_str());	// write something to the internal memory
-  mystr = "Y = " + String (yAvg.get());
-  u8g2.drawStr(0,40,mystr.c_str());	// write something to the internal memory
-  mystr = "Z = " + String (zAvg.get());
-  u8g2.drawStr(0,50,mystr.c_str());	// write something to the internal memory
+	String mystr;
+	mystr = "X: " + String (xAvg.get(),1) + " ";
+	u8g2.drawStr(30,30,mystr.c_str());
+	mystr = "Y: " + String (yAvg.get(),1) + " ";
+	u8g2.drawStr(30,52,mystr.c_str());
+	//mystr = "Z = " + String (zAvg.get());
+	//u8g2.drawStr(0,50,mystr.c_str());	// write something to the internal memory
 
-  u8g2.sendBuffer();					// transfer internal memory to the display
+	u8g2.sendBuffer();
 }
 
 void loop(void) {
-  if (mpu.update()) {
-	  static uint32_t prev_ms = millis();
-	  if (millis() > prev_ms + 10) {
-		  // print_roll_pitch_yaw();
-		  prev_ms = millis();
-		  write_something();
-	  }
-  }
+	if (mpu.update()) {
+		static uint32_t prev_ms = millis();
+		if (millis() > prev_ms + 100) {
+			// print_roll_pitch_yaw();
+			prev_ms = millis();
+			write_angles();
+		}
+	}
 }
+
