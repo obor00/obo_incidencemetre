@@ -1,14 +1,14 @@
 /*
 
-	Incidencemetre
-	Author: Obor 14/11/2021
+   Incidencemetre
+Author: Obor 14/11/2021
 
-	libraries:
-	MPU9250 by hideakitai https://github.com/hideakitai/MPU9250
-	U8G2 by Oliver https://github.com/olikraus/u8g2
+libraries:
+MPU9250 by hideakitai https://github.com/hideakitai/MPU9250
+U8G2 by Oliver https://github.com/olikraus/u8g2
 
-	OLD model: SSH1106, 128*64
-*/
+OLD model: SSH1106, 128*64
+ */
 
 #include <Arduino.h>
 #include <U8g2lib.h>
@@ -24,6 +24,8 @@
 #include "eeprom_utils.h"
 #include <MovingAverage.h>
 
+const int buttonPin = 2;
+const int ledPin = LED_BUILTIN;
 // setup SH1106_128X64
 U8G2_SH1106_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);
 
@@ -32,7 +34,13 @@ MovingAverage<float> xAvg(10);
 MovingAverage<float> yAvg(10);
 MovingAverage<float> zAvg(10);
 
-void setup(void) {
+float xOffset = 0.0;
+float yOffset = 0.0;
+
+void setup(void)
+{
+	pinMode(buttonPin, INPUT_PULLUP);
+	pinMode(ledPin, OUTPUT);
 
 	//Serial.begin(115200);
 
@@ -70,7 +78,8 @@ void setup(void) {
 }
 
 
-void print_roll_pitch_yaw() {
+void print_roll_pitch_yaw()
+{
 	Serial.print("Yaw, Pitch, Roll: ");
 	Serial.print(mpu.getYaw(), 2);
 	Serial.print(", ");
@@ -81,21 +90,31 @@ void print_roll_pitch_yaw() {
 
 int count = 0;
 
-void write_angles() {
-
+void write_angles()
+{
 	xAvg.push(mpu.getEulerX());
 	yAvg.push(mpu.getEulerY());
-	zAvg.push(mpu.getEulerZ());
+	//zAvg.push(mpu.getEulerZ());
 
 	String mystr;
-	mystr = "X: " + String (xAvg.get(),1) + " ";
+	mystr = "X: " + String (xAvg.get() - xOffset, 1) + " ";
 	u8g2.drawStr(30,30,mystr.c_str());
-	mystr = "Y: " + String (yAvg.get(),1) + " ";
+	mystr = "Y: " + String (yAvg.get() - yOffset, 1) + " ";
 	u8g2.drawStr(30,52,mystr.c_str());
 	//mystr = "Z = " + String (zAvg.get());
 	//u8g2.drawStr(0,50,mystr.c_str());	// write something to the internal memory
 
 	u8g2.sendBuffer();
+}
+
+void check_button()
+{
+	if (!digitalRead(buttonPin)) {
+		// Pin is high
+		xOffset = xAvg.get();
+		yOffset = yAvg.get();
+		digitalWrite(ledPin, HIGH);
+	}
 }
 
 void loop(void) {
@@ -105,6 +124,7 @@ void loop(void) {
 			// print_roll_pitch_yaw();
 			prev_ms = millis();
 			write_angles();
+			check_button();
 		}
 	}
 }
